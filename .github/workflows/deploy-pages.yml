@@ -43,31 +43,62 @@ jobs:
           github-token: ${{ secrets.PAGES_PAT || github.token }}
           script: |
             const { owner, repo } = context.repo;
-            try {
-              await github.rest.pages.get({ owner, repo });
-              core.info('GitHub Pages already enabled.');
-              return;
-            } catch (err) {
-              if (err.status !== 404) throw err;
+            const token = process.env.GITHUB_TOKEN;
+            const base = `https://api.github.com/repos/${owner}/${repo}/pages`;
+            const headers = {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github+json'
+            };
+
+            async function getPages() {
+              const res = await fetch(base, { headers });
+              if (res.status === 200) return await res.json();
+              if (res.status === 404) return null;
+              throw new Error(`GET /pages failed: ${res.status} ${await res.text()}`);
             }
-            // The GITHUB_TOKEN cannot create a Pages site (repo-administration op).
-            // Creating only works with a PAT that has the Pages permission.
-            try {
-              const created = await github.rest.pages.create({
-                owner,
-                repo,
-                build_type: 'workflow'
+
+            async function switchToWorkflow(current) {
+              const res = await fetch(base, {
+                method: 'PUT',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ build_type: 'workflow' })
               });
-              core.info(`Created Pages site: ${created.data.html_url}`);
-            } catch (createErr) {
-              if (createErr.status !== 403 && createErr.status !== 404) throw createErr;
-              core.setFailed(
-                'GitHub Pages is not enabled and the token cannot enable it.\n' +
-                'Do ONE of the following, then re-run this workflow:\n' +
-                '  1) Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions", or\n' +
-                '  2) Create a fine-grained PAT with Pages (read/write) permission and add it\n' +
-                '     as the repo secret PAGES_PAT, then re-run.'
-              );
+              if (res.status === 200 || res.status === 201) {
+                core.info('Switched GitHub Pages to the GitHub Actions source.');
+                return;
+              }
+              if (res.status === 403) {
+                core.setFailed(
+                  `GitHub Pages is ${current ? 'deploying from a branch' : 'not enabled'} and this token ` +
+                  'cannot switch it to the GitHub Actions source via the API.\n' +
+                  'Set Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions", then re-run.'
+                );
+                return;
+              }
+              throw new Error(`Switch Pages failed: ${res.status} ${await res.text()}`);
+            }
+
+            const site = await getPages();
+            if (site === null) {
+              const res = await fetch(base, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ build_type: 'workflow' })
+              });
+              if (res.status === 201) {
+                core.info('Created GitHub Pages site with the GitHub Actions source.');
+              } else if (res.status === 403 || res.status === 404) {
+                core.setFailed(
+                  'GitHub Pages is not enabled and this token cannot enable it.\n' +
+                  'Set Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions", then re-run.'
+                );
+              } else {
+                throw new Error(`Create Pages failed: ${res.status} ${await res.text()}`);
+              }
+            } else if (site.build_type !== 'workflow') {
+              await switchToWorkflow(site);
+            } else {
+              core.info('GitHub Pages enabled with the GitHub Actions source.');
             }
 
       - name: Configure Pages
