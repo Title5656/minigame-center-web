@@ -38,68 +38,30 @@ jobs:
 
       - name: Enable GitHub Pages
         id: enable-pages
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.PAGES_PAT || github.token }}
-          script: |
-            const { owner, repo } = context.repo;
-            const token = process.env.GITHUB_TOKEN;
-            const base = `https://api.github.com/repos/${owner}/${repo}/pages`;
-            const headers = {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/vnd.github+json'
-            };
-
-            async function getPages() {
-              const res = await fetch(base, { headers });
-              if (res.status === 200) return await res.json();
-              if (res.status === 404) return null;
-              throw new Error(`GET /pages failed: ${res.status} ${await res.text()}`);
-            }
-
-            async function switchToWorkflow(current) {
-              const res = await fetch(base, {
-                method: 'PUT',
-                headers: { ...headers, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ build_type: 'workflow' })
-              });
-              if (res.status === 200 || res.status === 201) {
-                core.info('Switched GitHub Pages to the GitHub Actions source.');
-                return;
-              }
-              if (res.status === 403) {
-                core.setFailed(
-                  `GitHub Pages is ${current ? 'deploying from a branch' : 'not enabled'} and this token ` +
-                  'cannot switch it to the GitHub Actions source via the API.\n' +
-                  'Set Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions", then re-run.'
-                );
-                return;
-              }
-              throw new Error(`Switch Pages failed: ${res.status} ${await res.text()}`);
-            }
-
-            const site = await getPages();
-            if (site === null) {
-              const res = await fetch(base, {
-                method: 'POST',
-                headers: { ...headers, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ build_type: 'workflow' })
-              });
-              if (res.status === 201) {
-                core.info('Created GitHub Pages site with the GitHub Actions source.');
-              } else if (res.status === 403 || res.status === 404) {
-                core.setFailed(
-                  'GitHub Pages is not enabled and this token cannot enable it.\n' +
-                  'Set Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions", then re-run.'
-                );
-              } else {
-                throw new Error(`Create Pages failed: ${res.status} ${await res.text()}`);
-              }
-            } else if (site.build_type !== 'workflow') {
-              await switchToWorkflow(site);
-            } else {
-              core.info('GitHub Pages enabled with the GitHub Actions source.');
-            }
+        env:
+          TOKEN: ${{ secrets.PAGES_PAT || github.token }}
+        run: |
+          URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"
+          STATE=$(curl -sS -o /tmp/pages.json -w "%{http_code}" -H "Authorization: Bearer ${TOKEN}" "$URL")
+          if [ "$STATE" = "200" ]; then
+            BT=$(python3 -c "import json;print(json.load(open('/tmp/pages.json')).get('build_type',''))")
+            if [ "$BT" != "workflow" ]; then
+              CODE=$(curl -sS -o /dev/null -w "%{http_code}" -X PUT -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d '{"build_type":"workflow"}' "$URL")
+              if [ "$CODE" != "200" ] && [ "$CODE" != "201" ]; then
+                echo "::error::Cannot switch GitHub Pages to the GitHub Actions source (HTTP $CODE). Set Settings -> Pages -> Source -> GitHub Actions and re-run."
+                exit 1
+              fi
+            fi
+          elif [ "$STATE" = "404" ]; then
+            CODE=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d '{"build_type":"workflow"}' "$URL")
+            if [ "$CODE" != "201" ] && [ "$CODE" != "200" ]; then
+              echo "::error::GitHub Pages is not enabled and this token cannot enable it (HTTP $CODE). Set Settings -> Pages -> Source -> GitHub Actions and re-run."
+              exit 1
+            fi
+          else
+            echo "::error::Unexpected GitHub Pages API status: $STATE"
+            exit 1
+          fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
