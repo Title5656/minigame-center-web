@@ -36,10 +36,42 @@ jobs:
       - name: Lint and test
         run: npm run check
 
+      - name: Enable GitHub Pages
+        id: enable-pages
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAGES_PAT || github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            try {
+              await github.rest.pages.get({ owner, repo });
+              core.info('GitHub Pages already enabled.');
+              return;
+            } catch (err) {
+              if (err.status !== 404) throw err;
+            }
+            // The GITHUB_TOKEN cannot create a Pages site (repo-administration op).
+            // Creating only works with a PAT that has the Pages permission.
+            try {
+              const created = await github.rest.pages.create({
+                owner,
+                repo,
+                build_type: 'workflow'
+              });
+              core.info(`Created Pages site: ${created.data.html_url}`);
+            } catch (createErr) {
+              if (createErr.status !== 403 && createErr.status !== 404) throw createErr;
+              core.setFailed(
+                'GitHub Pages is not enabled and the token cannot enable it.\n' +
+                'Do ONE of the following, then re-run this workflow:\n' +
+                '  1) Settings -> Pages -> Build and deployment -> Source -> "GitHub Actions", or\n' +
+                '  2) Create a fine-grained PAT with Pages (read/write) permission and add it\n' +
+                '     as the repo secret PAGES_PAT, then re-run.'
+              );
+            }
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Stage public files
         run: |
