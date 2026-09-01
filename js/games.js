@@ -100,23 +100,16 @@ if(game){
     });
   }
   showGameNow(game);
-  runBlockTransition(()=>{
-    const panel = document.querySelector(`.game-panel.is-active`);
-    if(panel) panel.classList.add('is-ready');
-  });
+  runBlockTransition(null);
 }else{
   document.querySelectorAll('.game-panel').forEach(p=>p.classList.remove('is-active'));
   const navEl = document.getElementById('gameNav');
   if(navEl) navEl.style.display = 'none';
-  const title = document.querySelector('.game-title');
-  if(title) title.textContent = 'Game Not Found';
-  const shell = document.querySelector('.arcade-shell');
-  if(shell) shell.classList.add('not-found');
+  const notFound = document.querySelector('.not-found-panel');
+  if(notFound) notFound.classList.add('is-active');
 }
 
 window.addEventListener('beforeunload', ()=>{ pauseAllGames(); });
-
-// Breakout
 
 // Breakout
 const breakoutCanvas = document.getElementById('breakoutCanvas');

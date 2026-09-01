@@ -458,8 +458,17 @@ canvas{
 }
 
 /* Game not found */
-.not-found{text-align:center;padding:3rem 0;color:var(--muted)}
-.not-found .back-link{font-family:'Press Start 2P','DM Sans',sans-serif;font-size:0.6rem;color:var(--accent)}
+.not-found{text-align:center;padding:3rem 0}
+.not-found-panel{display:none}
+.not-found-panel.is-active{display:block;text-align:center;padding:3rem 0;color:var(--muted)}
+.not-found-title{font-family:'Press Start 2P','DM Sans',sans-serif;font-size:1.2rem;font-weight:400;color:var(--text);margin-bottom:1rem}
+.not-found-msg{margin-bottom:1.6rem}
+.not-found-home{
+  display:inline-block;font-family:'Press Start 2P','DM Sans',sans-serif;font-size:0.6rem;
+  color:var(--accent);border:1px solid var(--border);padding:0.55rem 0.9rem;background:var(--surface-2);
+  text-decoration:none;
+}
+.not-found-home:hover,.not-found-home:focus-visible{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
 
 .pixel-shelf{
   display:flex;gap:1.2rem;align-items:center;margin-top:1.2rem;
