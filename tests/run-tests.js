@@ -97,6 +97,15 @@ const context = {
   Object,
   console
 };
+context.window = {
+  location: { search: '?game=breakout' },
+  addEventListener: () => {}
+};
+context.location = context.window.location;
+context.URLSearchParams = class {
+  constructor(s) {}
+  get(k) { return k === 'game' ? 'breakout' : null; }
+};
 vm.createContext(context);
 
 const gamesSrc = fs.readFileSync(path.join(__dirname, '../js/games.js'), 'utf8');
