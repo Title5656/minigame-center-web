@@ -69,7 +69,7 @@ jobs:
       - name: Stage public files
         run: |
           mkdir -p _site
-          cp index.html 404.html .nojekyll _site/
+          cp index.html play.html 404.html .nojekyll _site/
           cp -r css _site/
           cp -r js _site/
 
