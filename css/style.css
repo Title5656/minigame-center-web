@@ -426,6 +426,41 @@ canvas{
 .blink{animation:blink 1.2s steps(2,start) infinite}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0.35}}
 
+/* Game menu cards */
+.game-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.2rem}
+.game-card{
+  display:block;border:1px solid var(--border);background:var(--surface-2);
+  padding:1.4rem;color:var(--text);cursor:pointer;text-decoration:none;
+  transition:all 0.2s ease;font-family:'Press Start 2P','DM Sans',sans-serif;
+}
+.game-card:hover,.game-card:focus-visible{
+  border-color:var(--accent);background:var(--accent-soft);
+  box-shadow:0 0 18px rgba(247,201,85,0.3);outline:none;
+}
+.game-card .gc-name{font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;display:block;margin-bottom:0.6rem}
+.game-card .gc-desc{font-size:0.55rem;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:0}
+
+/* Game page nav bar */
+.game-nav{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+  margin-bottom:1.6rem;
+}
+.game-nav .back-link{
+  font-family:'Press Start 2P','DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--text);border:1px solid var(--border);
+  background:var(--surface-2);padding:0.7rem 1rem;cursor:pointer;transition:all 0.2s ease;
+}
+.game-nav .back-link:hover,.game-nav .back-link:focus-visible{border-color:var(--accent);background:var(--accent-soft)}
+.game-nav .switch-wrap{display:flex;align-items:center;gap:0.6rem;color:var(--muted);font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;font-family:'Press Start 2P','DM Sans',sans-serif}
+.game-nav select{
+  font-family:'Press Start 2P','DM Sans',sans-serif;font-size:0.55rem;letter-spacing:0.12em;
+  background:var(--surface-2);color:var(--text);border:1px solid var(--border);padding:0.55rem 0.6rem;cursor:pointer;
+}
+
+/* Game not found */
+.not-found{text-align:center;padding:3rem 0;color:var(--muted)}
+.not-found .back-link{font-family:'Press Start 2P','DM Sans',sans-serif;font-size:0.6rem;color:var(--accent)}
+
 .pixel-shelf{
   display:flex;gap:1.2rem;align-items:center;margin-top:1.2rem;
 }
