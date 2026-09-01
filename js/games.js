@@ -26,6 +26,7 @@ const gameColors = {
 function buildBlockTransition(){
   if(!blockTransition) return;
   blockTransition.innerHTML = '';
+  const frag = document.createDocumentFragment();
   for(let r=0;r<blockRows;r++){
     for(let c=0;c<blockCols;c++){
       const cell = document.createElement('div');
@@ -33,9 +34,10 @@ function buildBlockTransition(){
       const delay = ((blockRows - 1 - r) * blockDelayY) + (c * blockDelayX);
       cell.style.setProperty('--delay', `${delay.toFixed(3)}s`);
       cell.style.setProperty('--hue', `${(c * 22 + r * 13) % 360}`);
-      blockTransition.appendChild(cell);
+      frag.appendChild(cell);
     }
   }
+  blockTransition.appendChild(frag);
 }
 
 buildBlockTransition();
@@ -551,7 +553,8 @@ function updateRunner(delta){
   if(runnerScoreEl.textContent !== newScore) runnerScoreEl.textContent = newScore;
   if(runnerGame.score > runnerGame.best){
     runnerGame.best = Math.floor(runnerGame.score);
-    runnerBestEl.textContent = String(runnerGame.best);
+    const bestStr = String(runnerGame.best);
+    if(runnerBestEl.textContent !== bestStr) runnerBestEl.textContent = bestStr;
   }
 
   runnerGame.spawnTimer += delta;
@@ -683,7 +686,8 @@ function updateDodge(delta){
   if(dodgeScoreEl.textContent !== newScore) dodgeScoreEl.textContent = newScore;
   if(dodgeGame.score > dodgeGame.best){
     dodgeGame.best = Math.floor(dodgeGame.score);
-    dodgeBestEl.textContent = String(dodgeGame.best);
+    const bestStr = String(dodgeGame.best);
+    if(dodgeBestEl.textContent !== bestStr) dodgeBestEl.textContent = bestStr;
   }
 
   if(dodgeGame.keys.left) dodgeGame.ship.x = Math.max(0, dodgeGame.ship.x - dodgeGame.ship.speed);
@@ -992,8 +996,7 @@ const orbitGame = {
   score:0,
   time:20,
   target:{x:0,y:0,r:20},
-  timer:null,
-  raf:0
+  timer:null
 };
 
 function spawnOrbitTarget(){
@@ -1018,12 +1021,6 @@ function drawOrbit(){
   orbitCtx.fill();
 }
 
-function orbitLoop(){
-  if(!orbitGame.running) return;
-  drawOrbit();
-  orbitGame.raf = requestAnimationFrame(orbitLoop);
-}
-
 function startOrbit(){
   if(orbitGame.running) return;
   orbitGame.running = true;
@@ -1037,6 +1034,7 @@ function startOrbit(){
   orbitGame.timer = setInterval(()=>{
     orbitGame.time -= 1;
     orbitTimeEl.textContent = String(orbitGame.time);
+    drawOrbit();
     if(orbitGame.time <= 0){
       orbitGame.running = false;
       clearInterval(orbitGame.timer);
@@ -1044,12 +1042,11 @@ function startOrbit(){
       orbitStatus.textContent = 'Time! Press Reset.';
     }
   },1000);
-  orbitLoop();
+  drawOrbit();
 }
 
 function pauseOrbit(){
   orbitGame.running = false;
-  cancelAnimationFrame(orbitGame.raf);
   clearInterval(orbitGame.timer);
 }
 
@@ -1075,6 +1072,7 @@ orbitCanvas.addEventListener('click', e=>{
     orbitGame.score += 1;
     orbitScoreEl.textContent = String(orbitGame.score);
     spawnOrbitTarget();
+    drawOrbit();
   }
 });
 
@@ -1185,68 +1183,64 @@ resetTrail();
 
 // Global input
 document.addEventListener('keydown', e=>{
+  const key = e.key;
   if(activeGame === 'breakout'){
-    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){
+    if(key === 'ArrowLeft' || key === 'a' || key === 'A'){
       breakout.keys.left = true;
-      e.preventDefault();
-    }
-    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){
+    }else if(key === 'ArrowRight' || key === 'd' || key === 'D'){
       breakout.keys.right = true;
-      e.preventDefault();
+    }else{
+      return;
     }
-  }
-  if(activeGame === 'runner'){
+    e.preventDefault();
+  }else if(activeGame === 'runner'){
     if(e.code === 'Space'){
       runnerJump();
       e.preventDefault();
     }
-  }
-  if(activeGame === 'dodge'){
-    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){
+  }else if(activeGame === 'dodge'){
+    if(key === 'ArrowLeft' || key === 'a' || key === 'A'){
       dodgeGame.keys.left = true;
-      e.preventDefault();
-    }
-    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){
+    }else if(key === 'ArrowRight' || key === 'd' || key === 'D'){
       dodgeGame.keys.right = true;
-      e.preventDefault();
+    }else{
+      return;
     }
-  }
-  if(activeGame === 'tower'){
+    e.preventDefault();
+  }else if(activeGame === 'tower'){
     if(e.code === 'Space'){
       dropTower();
       e.preventDefault();
     }
-  }
-  if(activeGame === 'snake'){
+  }else if(activeGame === 'snake'){
     const dir = snakeGame.nextDir;
-    if(e.key === 'ArrowUp' && dir.y !== 1){snakeGame.nextDir={x:0,y:-1};e.preventDefault();}
-    if(e.key === 'ArrowDown' && dir.y !== -1){snakeGame.nextDir={x:0,y:1};e.preventDefault();}
-    if(e.key === 'ArrowLeft' && dir.x !== 1){snakeGame.nextDir={x:-1,y:0};e.preventDefault();}
-    if(e.key === 'ArrowRight' && dir.x !== -1){snakeGame.nextDir={x:1,y:0};e.preventDefault();}
-  }
-  if(activeGame === 'hex'){
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
-      moveHexByKey(e.key);
+    const handled = (
+      (key === 'ArrowUp' && dir.y !== 1 && (snakeGame.nextDir={x:0,y:-1}))
+      || (key === 'ArrowDown' && dir.y !== -1 && (snakeGame.nextDir={x:0,y:1}))
+      || (key === 'ArrowLeft' && dir.x !== 1 && (snakeGame.nextDir={x:-1,y:0}))
+      || (key === 'ArrowRight' && dir.x !== -1 && (snakeGame.nextDir={x:1,y:0}))
+    );
+    if(handled) e.preventDefault();
+  }else if(activeGame === 'hex'){
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
+      moveHexByKey(key);
       e.preventDefault();
     }
   }
 });
 
 document.addEventListener('keyup', e=>{
-  if(activeGame === 'breakout'){
-    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){
-      breakout.keys.left = false;
-    }
-    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){
-      breakout.keys.right = false;
-    }
+  const key = e.key;
+  if(activeGame === 'breakout' && (key === 'ArrowLeft' || key === 'a' || key === 'A')){
+    breakout.keys.left = false;
   }
-  if(activeGame === 'dodge'){
-    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){
-      dodgeGame.keys.left = false;
-    }
-    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){
-      dodgeGame.keys.right = false;
-    }
+  if(activeGame === 'breakout' && (key === 'ArrowRight' || key === 'd' || key === 'D')){
+    breakout.keys.right = false;
+  }
+  if(activeGame === 'dodge' && (key === 'ArrowLeft' || key === 'a' || key === 'A')){
+    dodgeGame.keys.left = false;
+  }
+  if(activeGame === 'dodge' && (key === 'ArrowRight' || key === 'd' || key === 'D')){
+    dodgeGame.keys.right = false;
   }
 });

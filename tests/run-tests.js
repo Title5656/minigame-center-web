@@ -79,6 +79,7 @@ const context = {
     querySelector: () => null,
     documentElement: { style: {} },
     createElement: () => makeElement(),
+    createDocumentFragment: () => ({ appendChild: () => {} }),
     addEventListener: () => {}
   },
   getComputedStyle: () => ({ getPropertyValue: () => '' }),
