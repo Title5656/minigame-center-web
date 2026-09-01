@@ -13,7 +13,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 </head>
 <body>
-<a href="#arcade" class="skip-link">Skip to games</a>
+<a href="#games" class="skip-link">Skip to games</a>
 <div class="bg-pixels" aria-hidden="true">
   <span class="sprite sprite-rocket sprite-1"></span>
   <span class="sprite sprite-cat sprite-2"></span>
@@ -26,7 +26,7 @@
   <div class="container nav">
     <div class="logo">ARCADE</div>
     <nav class="nav-links" aria-label="Site navigation">
-      <a href="#arcade">Arcade</a>
+      <a href="#games">Games</a>
       <a href="#lineup">Lineup</a>
       <a href="#how">How It Works</a>
     </nav>
@@ -63,214 +63,25 @@
     <span class="pixel-art pixel-star pixel-float star-2" aria-hidden="true"></span>
   </section>
 
-  <section id="arcade">
-    <div class="section-title">Arcade</div>
-    <p class="section-sub">Switch tabs to play each game. Scores reset on refresh.</p>
-    <div class="arcade-marquee blink" aria-hidden="true">Insert Coin · Arcade Mode</div>
-    <div class="arcade-shell">
-      <div class="tab-row" role="tablist" aria-label="Arcade games">
-        <button class="tab-btn active" role="tab" id="tab-breakout" type="button" data-game="breakout" aria-selected="true" aria-controls="panel-breakout">Breakout</button>
-        <button class="tab-btn" role="tab" id="tab-snake" type="button" data-game="snake" aria-selected="false" aria-controls="panel-snake" tabindex="-1">Snake</button>
-        <button class="tab-btn" role="tab" id="tab-memory" type="button" data-game="memory" aria-selected="false" aria-controls="panel-memory" tabindex="-1">Memory Match</button>
-        <button class="tab-btn" role="tab" id="tab-runner" type="button" data-game="runner" aria-selected="false" aria-controls="panel-runner" tabindex="-1">Pixel Runner</button>
-        <button class="tab-btn" role="tab" id="tab-dodge" type="button" data-game="dodge" aria-selected="false" aria-controls="panel-dodge" tabindex="-1">Astro Dodge</button>
-        <button class="tab-btn" role="tab" id="tab-tower" type="button" data-game="tower" aria-selected="false" aria-controls="panel-tower" tabindex="-1">Tower Drop</button>
-        <button class="tab-btn" role="tab" id="tab-hex" type="button" data-game="hex" aria-selected="false" aria-controls="panel-hex" tabindex="-1">Hex Slide</button>
-        <button class="tab-btn" role="tab" id="tab-orbit" type="button" data-game="orbit" aria-selected="false" aria-controls="panel-orbit" tabindex="-1">Orbit Tap</button>
-        <button class="tab-btn" role="tab" id="tab-trail" type="button" data-game="trail" aria-selected="false" aria-controls="panel-trail" tabindex="-1">Light Trails</button>
-      </div>
-
-      <div class="game-panel is-active" data-game="breakout" role="tabpanel" id="panel-breakout" aria-labelledby="tab-breakout">
-        <div class="game-header">
-          <div class="game-title">Breakout</div>
-          <div class="game-meta">
-            <div>Score<strong id="breakoutScore">0</strong></div>
-            <div>Lives<strong id="breakoutLives">3</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <canvas id="breakoutCanvas" width="720" height="420" aria-label="Breakout game canvas"></canvas>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="breakoutStart">Start</button>
-            <button class="control-btn" id="breakoutReset">Reset</button>
-            <div class="hint" id="breakoutStatus" aria-live="polite">Press Start to play. Controls: ← → / A D</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="snake" role="tabpanel" id="panel-snake" aria-labelledby="tab-snake">
-        <div class="game-header">
-          <div class="game-title">Snake</div>
-          <div class="game-meta">
-            <div>Score<strong id="snakeScore">0</strong></div>
-            <div>Best<strong id="snakeBest">0</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <canvas id="snakeCanvas" width="440" height="440" aria-label="Snake game canvas"></canvas>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="snakeStart">Start</button>
-            <button class="control-btn" id="snakeReset">Reset</button>
-            <div class="hint" id="snakeStatus" aria-live="polite">Use arrow keys to move. Avoid walls.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="memory" role="tabpanel" id="panel-memory" aria-labelledby="tab-memory">
-        <div class="game-header">
-          <div class="game-title">Memory Match</div>
-          <div class="game-meta">
-            <div>Moves<strong id="memoryMoves">0</strong></div>
-            <div>Time<strong><span id="memoryTime">0</span>s</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <div class="memory-grid" id="memoryGrid" aria-label="Memory match grid"></div>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="memoryShuffle">Shuffle</button>
-            <button class="control-btn" id="memoryReset">Reset</button>
-            <div class="hint" id="memoryStatus" aria-live="polite">Match all pairs with fewer moves.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="runner" role="tabpanel" id="panel-runner" aria-labelledby="tab-runner">
-        <div class="game-header">
-          <div class="game-title">Pixel Runner</div>
-          <div class="game-meta">
-            <div>Score<strong id="runnerScore">0</strong></div>
-            <div>Best<strong id="runnerBest">0</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <canvas id="runnerCanvas" width="720" height="280" aria-label="Pixel runner game canvas"></canvas>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="runnerStart">Start</button>
-            <button class="control-btn" id="runnerReset">Reset</button>
-            <div class="hint" id="runnerStatus" aria-live="polite">Press Start. Space to jump.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="dodge" role="tabpanel" id="panel-dodge" aria-labelledby="tab-dodge">
-        <div class="game-header">
-          <div class="game-title">Astro Dodge</div>
-          <div class="game-meta">
-            <div>Score<strong id="dodgeScore">0</strong></div>
-            <div>Best<strong id="dodgeBest">0</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <canvas id="dodgeCanvas" width="520" height="320" aria-label="Astro dodge game canvas"></canvas>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="dodgeStart">Start</button>
-            <button class="control-btn" id="dodgeReset">Reset</button>
-            <div class="hint" id="dodgeStatus" aria-live="polite">Move with ← → / A D and dodge the asteroids.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="tower" role="tabpanel" id="panel-tower" aria-labelledby="tab-tower">
-        <div class="game-header">
-          <div class="game-title">Tower Drop</div>
-          <div class="game-meta">
-            <div>Stacks<strong id="towerScore">0</strong></div>
-            <div>Best<strong id="towerBest">0</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <canvas id="towerCanvas" width="440" height="320" aria-label="Tower drop game canvas"></canvas>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="towerStart">Start</button>
-            <button class="control-btn" id="towerDrop">Drop</button>
-            <button class="control-btn" id="towerReset">Reset</button>
-            <div class="hint" id="towerStatus" aria-live="polite">Press Drop or Space to stack the blocks.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="hex" role="tabpanel" id="panel-hex" aria-labelledby="tab-hex">
-        <div class="game-header">
-          <div class="game-title">Hex Slide</div>
-          <div class="game-meta">
-            <div>Moves<strong id="hexMoves">0</strong></div>
-            <div>Time<strong><span id="hexTime">0</span>s</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <div class="hex-grid" id="hexGrid" aria-label="Hex slide puzzle grid"></div>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="hexShuffle">Shuffle</button>
-            <button class="control-btn" id="hexReset">Reset</button>
-            <div class="hint" id="hexStatus" aria-live="polite">Slide tiles with arrow keys or taps.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="orbit" role="tabpanel" id="panel-orbit" aria-labelledby="tab-orbit">
-        <div class="game-header">
-          <div class="game-title">Orbit Tap</div>
-          <div class="game-meta">
-            <div>Score<strong id="orbitScore">0</strong></div>
-            <div>Time<strong><span id="orbitTime">20</span>s</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <canvas id="orbitCanvas" width="480" height="320" aria-label="Orbit tap game canvas"></canvas>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="orbitStart">Start</button>
-            <button class="control-btn" id="orbitReset">Reset</button>
-            <div class="hint" id="orbitStatus" aria-live="polite">Click the glowing orb before time runs out.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="game-panel" data-game="trail" role="tabpanel" id="panel-trail" aria-labelledby="tab-trail">
-        <div class="game-header">
-          <div class="game-title">Light Trails</div>
-          <div class="game-meta">
-            <div>Level<strong id="trailLevel">0</strong></div>
-            <div>Best<strong id="trailBest">0</strong></div>
-          </div>
-        </div>
-        <div class="game-area">
-          <div class="game-board">
-            <div class="trail-grid" id="trailGrid" aria-label="Light trails grid">
-              <button class="trail-pad" type="button" data-pad="0">I</button>
-              <button class="trail-pad" type="button" data-pad="1">II</button>
-              <button class="trail-pad" type="button" data-pad="2">III</button>
-              <button class="trail-pad" type="button" data-pad="3">IV</button>
-            </div>
-          </div>
-          <div class="game-controls">
-            <button class="control-btn" id="trailStart">Start</button>
-            <button class="control-btn" id="trailReset">Reset</button>
-            <div class="hint" id="trailStatus" aria-live="polite">Repeat the light sequence.</div>
-          </div>
-        </div>
-      </div>
+  <section id="games">
+    <div class="section-title">Choose A Game</div>
+    <p class="section-sub">Pick a game to start. Each game opens on its own page.</p>
+    <div class="game-card-grid">
+      <a class="game-card" href="play.html?game=breakout"><span class="gc-name">Breakout</span><span class="gc-desc">Bounce the ball, clear all bricks.</span></a>
+      <a class="game-card" href="play.html?game=snake"><span class="gc-name">Snake</span><span class="gc-desc">Grow by eating food, avoid walls.</span></a>
+      <a class="game-card" href="play.html?game=memory"><span class="gc-name">Memory Match</span><span class="gc-desc">Flip cards to find matching pairs.</span></a>
+      <a class="game-card" href="play.html?game=runner"><span class="gc-name">Pixel Runner</span><span class="gc-desc">Jump the obstacles, keep running.</span></a>
+      <a class="game-card" href="play.html?game=dodge"><span class="gc-name">Astro Dodge</span><span class="gc-desc">Dodge incoming asteroids.</span></a>
+      <a class="game-card" href="play.html?game=tower"><span class="gc-name">Tower Drop</span><span class="gc-desc">Stack the blocks neatly.</span></a>
+      <a class="game-card" href="play.html?game=hex"><span class="gc-name">Hex Slide</span><span class="gc-desc">Slide tiles to solve the puzzle.</span></a>
+      <a class="game-card" href="play.html?game=orbit"><span class="gc-name">Orbit Tap</span><span class="gc-desc">Tap the orb before time runs out.</span></a>
+      <a class="game-card" href="play.html?game=trail"><span class="gc-name">Light Trails</span><span class="gc-desc">Repeat the light sequence.</span></a>
     </div>
   </section>
 
   <section id="lineup">
     <div class="section-title">Lineup</div>
-    <p class="section-sub">All arcade titles are now playable in the Arcade section.</p>
+    <p class="section-sub">All arcade titles are playable on their own pages.</p>
     <div class="roster">
       <div class="roster-item">Breakout · Playable</div>
       <div class="roster-item">Snake · Playable</div>
@@ -287,14 +98,14 @@
   <section id="how">
     <div class="section-title">How It Works</div>
     <p class="section-sub">
-      Each game runs locally in the browser. No data is saved, and everything resets on refresh.
-      Use the Arcade tabs to switch between games instantly.
+      Each game runs locally in the browser on its own page. No data is saved,
+      and everything resets on refresh. Use the block transition to jump between games.
     </p>
   </section>
 </main>
 
 <footer class="container">Arcade Mini Game Center · Pixel Arcade Theme</footer>
 
-<script src="js/games.js"></script>
+<script src="js/menu.js" defer></script>
 </body>
 </html>
