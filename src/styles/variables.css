@@ -1,0 +1,20 @@
+:root {
+  --bg: #0b0614;
+  --surface: #140c22;
+  --surface-2: #1b1030;
+  --text: #f7f5ff;
+  --muted: #b7a7d6;
+  --border: #2d1c4b;
+  --accent: #ffcf4a;
+  --accent-soft: rgba(255, 207, 74, 0.2);
+  --accent-2: #4be8ff;
+  --accent-3: #ff4edb;
+  --game-bg: #10081f;
+  --game-text: #f7f5ff;
+  --game-gold: #ffcf4a;
+  --game-cyan: #4be8ff;
+  --game-pink: #ff4edb;
+  --game-gold-dim: rgba(255, 207, 74, 0.3);
+  --game-cyan-dim: rgba(75, 232, 255, 0.3);
+  --game-pink-dim: rgba(255, 78, 219, 0.3);
+}

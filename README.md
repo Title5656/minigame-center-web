@@ -20,25 +20,102 @@ A neon-lit arcade hub featuring nine playable HTML5 games. Built for quick sessi
 
 ```bash
 npm install      # install dev dependencies
-npm run check    # lint + test (run before committing)
-npm run lint     # ESLint only
-npm test         # run the bug-fix unit tests
+npm run dev      # start Vite local development server
+npm run build    # bundle production build to dist/
+npm run preview  # preview production build locally
+npm run lint     # run ESLint on src/
 npm run lint:fix # auto-fix lint issues
+npm test         # run unit & regression tests
+npm run check    # lint + test + build (run before committing)
 ```
 
 ## Structure
 
 ```
-index.html            # Static HTML page (all markup)
-css/style.css         # All styles (extracted from inline)
-js/games.js           # All game logic (extracted from inline)
-tests/run-tests.js    # Node-based bug-fix regression tests
-.github/workflows/    # GitHub Pages deploy with lint+test gate
+minigame-center-web/
+├── index.html            # Homepage HTML shell
+├── play.html             # Game play HTML shell
+├── 404.html              # Custom 404 page
+├── vite.config.js        # Vite configuration (multi-page + base path)
+├── package.json          # Project metadata, scripts, and dependencies
+├── public/
+│   └── .nojekyll         # GitHub Pages Jekyll bypass flag
+├── src/
+│   ├── main.js           # Homepage entry script
+│   ├── play.js           # Play shell dynamic game loader
+│   ├── data/
+│   │   └── games.js      # Central game registry (single source of truth)
+│   ├── ui/
+│   │   ├── transition.js # Block/pixel transition controller
+│   │   ├── game-card.js  # Reusable homepage game card generator
+│   │   └── game-nav.js   # Reusable play navigation & game switcher
+│   ├── utils/
+│   │   └── colors.js     # CSS token resolution utility with fallbacks
+│   ├── games/
+│   │   ├── breakout/     # Breakout game module
+│   │   ├── snake/        # Snake game module
+│   │   ├── memory/       # Memory Match game module
+│   │   ├── runner/       # Pixel Runner game module
+│   │   ├── dodge/        # Astro Dodge game module
+│   │   ├── tower/        # Tower Drop game module
+│   │   ├── hex/          # Hex Slide game module
+│   │   ├── orbit/        # Orbit Tap game module
+│   │   └── trail/        # Light Trails game module
+│   └── styles/
+│       ├── index.css     # Stylesheet entry point
+│       ├── variables.css # Theme tokens & color definitions
+│       ├── base.css      # Resets, typography, and pixel sprite backgrounds
+│       ├── layout.css    # Header, hero, arcade shell, containers
+│       ├── components.css# Buttons, cards, transitions, pixel decorations
+│       └── games.css     # Game boards, canvas, and puzzle grids
+├── tests/
+│   └── run-tests.js      # Unit and regression test suite
+└── .github/
+    └── workflows/
+        └── deploy-pages.yml # CI pipeline: lint + test + build -> deploy dist/
 ```
+
+## Adding a New Game
+
+Adding a new game to the arcade hub requires only four simple steps:
+
+1. **Create the game module**:
+   Create `src/games/<slug>/index.js` exporting standard lifecycle functions:
+   ```javascript
+   export function mount(root) {
+     // 1. Render markup into root
+     // 2. Query canvas/controls
+     // 3. Attach event listeners
+     return {
+       destroy() {
+         // Clean up timers, RAF loops, and event listeners
+       }
+     };
+   }
+   ```
+2. **Register in the central registry**:
+   Add the game metadata to `src/data/games.js`:
+   ```javascript
+   {
+     slug: '<slug>',
+     name: 'Game Name',
+     description: 'Brief description of gameplay.',
+     controls: 'Controls summary'
+   }
+   ```
+3. **Register loader in `src/play.js`**:
+   Add the dynamic import to `gameLoaders` in `src/play.js`:
+   ```javascript
+   '<slug>': () => import('./games/<slug>/index.js')
+   ```
+4. **Add tests (optional)**:
+   Add any pure-logic regression assertions in `tests/run-tests.js`.
+
+The game will automatically appear on the homepage grid, in the lineup roster, and in the game switcher dropdown.
 
 ## Deployment
 
-Pushes to `main` deploy to GitHub Pages automatically. The workflow runs `npm run check` (lint + tests) before the deploy step, and only stages `index.html`, `css/`, `js/`, and `.nojekyll` into the Pages artifact.
+Pushes to `main` deploy to GitHub Pages automatically. The workflow runs `npm run check` (`npm run lint && npm test && npm run build`) and uploads the generated `dist/` directory to GitHub Pages.
 
 ### First-time setup (one-time)
 

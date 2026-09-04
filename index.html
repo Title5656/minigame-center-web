@@ -9,7 +9,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 </head>
 <body>
@@ -66,33 +65,13 @@
   <section id="games">
     <div class="section-title">Choose A Game</div>
     <p class="section-sub">Pick a game to start. Each game opens on its own page.</p>
-    <div class="game-card-grid">
-      <a class="game-card" href="play.html?game=breakout"><span class="gc-name">Breakout</span><span class="gc-desc">Bounce the ball, clear all bricks.</span></a>
-      <a class="game-card" href="play.html?game=snake"><span class="gc-name">Snake</span><span class="gc-desc">Grow by eating food, avoid walls.</span></a>
-      <a class="game-card" href="play.html?game=memory"><span class="gc-name">Memory Match</span><span class="gc-desc">Flip cards to find matching pairs.</span></a>
-      <a class="game-card" href="play.html?game=runner"><span class="gc-name">Pixel Runner</span><span class="gc-desc">Jump the obstacles, keep running.</span></a>
-      <a class="game-card" href="play.html?game=dodge"><span class="gc-name">Astro Dodge</span><span class="gc-desc">Dodge incoming asteroids.</span></a>
-      <a class="game-card" href="play.html?game=tower"><span class="gc-name">Tower Drop</span><span class="gc-desc">Stack the blocks neatly.</span></a>
-      <a class="game-card" href="play.html?game=hex"><span class="gc-name">Hex Slide</span><span class="gc-desc">Slide tiles to solve the puzzle.</span></a>
-      <a class="game-card" href="play.html?game=orbit"><span class="gc-name">Orbit Tap</span><span class="gc-desc">Tap the orb before time runs out.</span></a>
-      <a class="game-card" href="play.html?game=trail"><span class="gc-name">Light Trails</span><span class="gc-desc">Repeat the light sequence.</span></a>
-    </div>
+    <div id="game-grid" class="game-card-grid"></div>
   </section>
 
   <section id="lineup">
     <div class="section-title">Lineup</div>
     <p class="section-sub">All arcade titles are playable on their own pages.</p>
-    <div class="roster">
-      <div class="roster-item">Breakout · Playable</div>
-      <div class="roster-item">Snake · Playable</div>
-      <div class="roster-item">Memory Match · Playable</div>
-      <div class="roster-item">Pixel Runner · Playable</div>
-      <div class="roster-item">Astro Dodge · Playable</div>
-      <div class="roster-item">Tower Drop · Playable</div>
-      <div class="roster-item">Hex Slide · Playable</div>
-      <div class="roster-item">Orbit Tap · Playable</div>
-      <div class="roster-item">Light Trails · Playable</div>
-    </div>
+    <div id="roster-grid" class="roster"></div>
   </section>
 
   <section id="how">
@@ -106,6 +85,6 @@
 
 <footer class="container">Arcade Mini Game Center · Pixel Arcade Theme</footer>
 
-<script src="js/menu.js" defer></script>
+<script type="module" src="/src/main.js"></script>
 </body>
 </html>

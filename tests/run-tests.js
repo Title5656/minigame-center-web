@@ -1,8 +1,3 @@
-'use strict';
-const fs = require('fs');
-const path = require('path');
-const vm = require('vm');
-
 function make2dCtx() {
   return new Proxy({}, {
     get(t, prop) {
@@ -24,6 +19,7 @@ function makeElement(overrides) {
     dataset: {},
     classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false },
     addEventListener: () => {},
+    removeEventListener: () => {},
     appendChild: () => {},
     setAttribute: () => {},
     getAttribute: () => null,
@@ -36,15 +32,6 @@ function makeElement(overrides) {
     ...(overrides || {})
   };
   return el;
-}
-
-function makeTabCollection() {
-  const games = ['breakout', 'snake', 'memory', 'runner', 'dodge', 'tower', 'hex', 'orbit', 'trail'];
-  return games.map(g => {
-    const el = makeElement();
-    el.dataset = { game: g };
-    return el;
-  });
 }
 
 const elementCache = {};
@@ -68,65 +55,60 @@ for (const p of ['breakout', 'snake', 'memory', 'runner', 'dodge', 'tower', 'hex
   }
 }
 
-const context = {
-  document: {
-    getElementById: getEl,
-    querySelectorAll: (sel) => {
-      if (sel === '.tab-btn' || sel === '.game-panel' || sel === '[role="tablist"]') return makeTabCollection();
-      if (sel === '.trail-pad') return [0, 1, 2, 3].map(i => makeElement({ dataset: { pad: String(i) } }));
-      return [];
-    },
-    querySelector: () => null,
-    documentElement: { style: {} },
-    createElement: () => makeElement(),
-    createDocumentFragment: () => ({ appendChild: () => {} }),
-    addEventListener: () => {}
+globalThis.document = {
+  getElementById: getEl,
+  querySelectorAll: (sel) => {
+    if (sel === '.trail-pad') return [0, 1, 2, 3].map((i) => makeElement({ dataset: { pad: String(i) } }));
+    return [];
   },
-  getComputedStyle: () => ({ getPropertyValue: () => '' }),
-  performance: { now: () => 0 },
-  requestAnimationFrame: () => 1,
-  cancelAnimationFrame: () => {},
-  setInterval: () => 123,
-  clearInterval: () => {},
-  setTimeout: () => 456,
-  clearTimeout: () => {},
-  Math,
-  String,
-  Number,
-  Array,
-  Object,
-  console
+  querySelector: () => null,
+  documentElement: { style: {} },
+  createElement: () => makeElement(),
+  createDocumentFragment: () => ({ appendChild: () => {} }),
+  addEventListener: () => {},
+  removeEventListener: () => {}
 };
-context.window = {
+
+globalThis.window = {
   location: { search: '?game=breakout' },
-  addEventListener: () => {}
+  addEventListener: () => {},
+  removeEventListener: () => {}
 };
-context.location = context.window.location;
-context.URLSearchParams = class {
-  constructor(s) {}
-  get(k) { return k === 'game' ? 'breakout' : null; }
-};
-vm.createContext(context);
 
-const gamesSrc = fs.readFileSync(path.join(__dirname, '../js/games.js'), 'utf8');
-vm.runInContext(gamesSrc, context);
+globalThis.getComputedStyle = () => ({ getPropertyValue: () => '' });
+globalThis.performance = { now: () => 0 };
+globalThis.requestAnimationFrame = () => 1;
+globalThis.cancelAnimationFrame = () => {};
 
-const tests = `
-let pass = 0, fail = 0;
-function assert(cond, name){
-  if(cond){ pass++; console.log('  PASS: ' + name); }
-  else { fail++; console.error('  FAIL: ' + name); }
+import { snakeGame, tickSnake } from '../src/games/snake/index.js';
+import { breakout, resetBreakout, updateBreakout } from '../src/games/breakout/index.js';
+import { runnerGame, runnerLoop, resetRunner, pauseRunner } from '../src/games/runner/index.js';
+import { trailGame, resetTrail, handleTrailInput } from '../src/games/trail/index.js';
+import { memoryGame, resetMemory } from '../src/games/memory/index.js';
+import { orbitGame } from '../src/games/orbit/index.js';
+
+let pass = 0;
+let fail = 0;
+
+function assert(cond, name) {
+  if (cond) {
+    pass++;
+    console.log('  PASS: ' + name);
+  } else {
+    fail++;
+    console.error('  FAIL: ' + name);
+  }
 }
 
-// Snake survives entering the cell its tail currently occupies
-snakeGame.snake = [{x:5,y:4},{x:5,y:5},{x:4,y:5},{x:4,y:4}];
-snakeGame.dir = {x:-1,y:0};
-snakeGame.nextDir = {x:-1,y:0};
+// 1. Snake survives entering the cell its tail currently occupies
+snakeGame.snake = [{ x: 5, y: 4 }, { x: 5, y: 5 }, { x: 4, y: 5 }, { x: 4, y: 4 }];
+snakeGame.dir = { x: -1, y: 0 };
+snakeGame.nextDir = { x: -1, y: 0 };
 snakeGame.running = true;
 tickSnake();
 assert(snakeGame.running === true, 'Snake survives entering departing tail cell');
 
-// Breakout center hit keeps a minimum horizontal speed
+// 2. Breakout center hit keeps a minimum horizontal speed
 resetBreakout();
 breakout.running = true;
 breakout.paddle.x = 100;
@@ -137,7 +119,7 @@ breakout.ball.dx = 3;
 updateBreakout();
 assert(Math.abs(breakout.ball.dx) >= 0.5, 'Breakout dx has min magnitude 0.5');
 
-// Runner delta is clamped after a background gap
+// 3. Runner delta is clamped after a background gap
 resetRunner();
 runnerGame.running = true;
 runnerLoop(0);
@@ -146,16 +128,16 @@ runnerLoop(50000);
 assert(runnerGame.score - before < 1000, 'Runner delta clamped after background gap');
 pauseRunner();
 
-// Light Trails ignores clicks after a sequence completes
+// 4. Light Trails ignores clicks after a sequence completes
 resetTrail();
-trailGame.sequence = [0,1,2];
+trailGame.sequence = [0, 1, 2];
 trailGame.userIndex = 3;
 trailGame.level = 3;
 trailGame.playing = false;
 handleTrailInput(2);
 assert(trailGame.sequence.length === 3 && trailGame.level === 3, 'Trail ignores clicks after sequence completes');
 
-// Light Trails reset clears the sequence
+// 5. Light Trails reset clears the sequence
 resetTrail();
 trailGame.sequence.push(0);
 trailGame.userIndex = 0;
@@ -165,29 +147,26 @@ assert(trailGame.userIndex === 1, 'Trail advances userIndex');
 resetTrail();
 assert(trailGame.sequence.length === 0, 'Trail reset clears sequence');
 
-// Memory uses generation guard so stale flip timeouts are ignored
+// 6. Memory uses generation guard so stale flip timeouts are ignored
 resetMemory();
 memoryGame.generation = 6;
-const a = {classList:{contains:()=>false, add:()=>{}, remove:()=>{}}, dataset:{value:'A'}, textContent:'A'};
-const b = {classList:{contains:()=>false, add:()=>{}, remove:()=>{}}, dataset:{value:'B'}, textContent:'B'};
+const a = { classList: { contains: () => false, add: () => {}, remove: () => {} }, dataset: { value: 'A' }, textContent: 'A' };
+const b = { classList: { contains: () => false, add: () => {}, remove: () => {} }, dataset: { value: 'B' }, textContent: 'B' };
 memoryGame.flipped = [a, b];
 assert(memoryGame.flipped.length === 2, 'Memory mismatch keeps cards flipped');
 
-// Orbit timer handle is nulled after the countdown ends
+// 7. Orbit timer handle is nulled after the countdown ends
 orbitGame.time = 1;
 orbitGame.running = true;
-// trigger the interval callback logic path by invoking the stored behaviour
 clearInterval(orbitGame.timer);
 orbitGame.timer = null;
 assert(orbitGame.timer === null, 'Orbit timer handle nulled');
 
-__result = { pass: pass, fail: fail };
-console.log('\\n' + pass + ' passed, ' + fail + ' failed');
-`;
-vm.runInContext(tests, context);
+console.log(`\n${pass} passed, ${fail} failed`);
 
-if (context.__result && context.__result.fail) {
-  console.error(`\\n${context.__result.fail} test(s) failed`);
+if (fail > 0) {
+  console.error(`\n${fail} test(s) failed`);
   process.exit(1);
 }
+
 console.log('\nAll tests passed');
