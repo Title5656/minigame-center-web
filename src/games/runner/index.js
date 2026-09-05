@@ -1,4 +1,6 @@
 import { getGameColors } from '../../utils/colors.js';
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playJump, playHit, playBlip } from '../../utils/audio.js';
 
 export const runnerGame = {
   running: false,
@@ -27,12 +29,14 @@ export function resetRunner() {
   runnerGame.ground = height - 28;
   runnerGame.running = false;
   runnerGame.score = 0;
+  runnerGame.best = getBestScore('runner', 0);
   runnerGame.player.y = runnerGame.ground - runnerGame.player.h;
   runnerGame.player.vy = 0;
   runnerGame.obstacles = [];
   runnerGame.spawnTimer = 0;
   if (scoreEl) scoreEl.textContent = '0';
-  if (statusEl) statusEl.textContent = 'Press Start. Space to jump.';
+  if (bestEl) bestEl.textContent = String(runnerGame.best);
+  if (statusEl) statusEl.textContent = 'Press Start. Space, ↑ or Click to jump.';
   drawRunner();
 }
 
@@ -69,6 +73,7 @@ export function updateRunner(delta) {
   if (scoreEl && scoreEl.textContent !== newScore) scoreEl.textContent = newScore;
   if (runnerGame.score > runnerGame.best) {
     runnerGame.best = Math.floor(runnerGame.score);
+    saveBestScore('runner', runnerGame.best);
     const bestStr = String(runnerGame.best);
     if (bestEl && bestEl.textContent !== bestStr) bestEl.textContent = bestStr;
   }
@@ -100,6 +105,7 @@ export function updateRunner(delta) {
       p.y + p.h > obs.y
     ) {
       runnerGame.running = false;
+      playHit();
       if (statusEl) statusEl.textContent = 'Game Over. Press Reset.';
       return;
     }
@@ -122,6 +128,7 @@ export function startRunner() {
   if (runnerGame.running) return;
   runnerGame.running = true;
   runnerGame.lastTime = 0;
+  playBlip();
   if (statusEl) statusEl.textContent = 'Playing...';
   runnerLoop(performance.now());
 }
@@ -138,6 +145,7 @@ export function runnerJump() {
   if (!runnerGame.running) return;
   if (runnerGame.player.y >= runnerGame.ground - runnerGame.player.h - 1) {
     runnerGame.player.vy = runnerGame.jump;
+    playJump();
   }
 }
 
@@ -153,12 +161,12 @@ export function mount(root) {
       </div>
       <div class="game-area">
         <div class="game-board">
-          <canvas id="runnerCanvas" width="720" height="280" aria-label="Pixel runner game canvas"></canvas>
+          <canvas id="runnerCanvas" width="720" height="280" aria-label="Pixel runner game canvas" style="touch-action: manipulation; cursor: pointer;"></canvas>
         </div>
         <div class="game-controls">
           <button class="control-btn" id="runnerStart">Start</button>
           <button class="control-btn" id="runnerReset">Reset</button>
-          <div class="hint" id="runnerStatus" aria-live="polite">Press Start. Space to jump.</div>
+          <div class="hint" id="runnerStatus" aria-live="polite">Press Start. Space, ↑ or click to jump.</div>
         </div>
       </div>
     </div>
@@ -174,15 +182,20 @@ export function mount(root) {
   colors = getGameColors();
 
   function onKeyDown(e) {
-    if (e.code === 'Space') {
+    if (e.code === 'Space' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
       runnerJump();
       e.preventDefault();
     }
   }
 
+  function onPointerDown() {
+    runnerJump();
+  }
+
   startBtn?.addEventListener('click', startRunner);
   resetBtn?.addEventListener('click', resetRunner);
   window.addEventListener('keydown', onKeyDown);
+  canvas?.addEventListener('pointerdown', onPointerDown);
 
   resetRunner();
 
@@ -192,6 +205,7 @@ export function mount(root) {
       startBtn?.removeEventListener('click', startRunner);
       resetBtn?.removeEventListener('click', resetRunner);
       window.removeEventListener('keydown', onKeyDown);
+      canvas?.removeEventListener('pointerdown', onPointerDown);
       canvas = null;
       ctx = null;
       scoreEl = null;

@@ -1,8 +1,12 @@
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playCoin, playBlip, playHit, playWin } from '../../utils/audio.js';
+
 export const memoryGame = {
   values: [],
   flipped: [],
   matched: 0,
   moves: 0,
+  best: 0,
   timer: null,
   seconds: 0,
   active: false,
@@ -11,14 +15,23 @@ export const memoryGame = {
 
 let gridEl = null;
 let movesEl = null;
+let bestEl = null;
 let timeEl = null;
 let statusEl = null;
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 export function buildMemory() {
   if (!gridEl) return;
   gridEl.innerHTML = '';
   const base = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-  memoryGame.values = [...base, ...base].sort(() => Math.random() - 0.5);
+  memoryGame.values = shuffleArray([...base, ...base]);
   memoryGame.values.forEach((value) => {
     const btn = document.createElement('button');
     btn.className = 'card';
@@ -44,10 +57,12 @@ export function resetMemory() {
   memoryGame.moves = 0;
   memoryGame.seconds = 0;
   memoryGame.active = false;
+  memoryGame.best = getBestScore('memory_moves', 0);
   memoryGame.generation = (memoryGame.generation || 0) + 1;
   clearInterval(memoryGame.timer);
   memoryGame.timer = null;
   if (movesEl) movesEl.textContent = '0';
+  if (bestEl) bestEl.textContent = memoryGame.best > 0 ? String(memoryGame.best) : '-';
   if (timeEl) timeEl.textContent = '0';
   if (statusEl) statusEl.textContent = 'Match all pairs with fewer moves.';
   buildMemory();
@@ -68,6 +83,7 @@ export function flipCard(card) {
     memoryGame.active = true;
     startMemoryTimer();
   }
+  playBlip();
   card.classList.add('is-flipped');
   card.textContent = card.dataset.value;
   memoryGame.flipped.push(card);
@@ -80,12 +96,18 @@ export function flipCard(card) {
       b.classList.add('is-matched');
       memoryGame.flipped = [];
       memoryGame.matched += 2;
+      playCoin();
       if (memoryGame.matched === memoryGame.values.length) {
         clearInterval(memoryGame.timer);
         memoryGame.timer = null;
+        playWin();
+        const best = saveBestScore('memory_moves', memoryGame.moves, true);
+        memoryGame.best = best;
+        if (bestEl) bestEl.textContent = String(best);
         if (statusEl) statusEl.textContent = `Completed in ${memoryGame.moves} moves · ${memoryGame.seconds}s`;
       }
     } else {
+      playHit();
       const generation = memoryGame.generation;
       setTimeout(() => {
         if (memoryGame.generation !== generation) return;
@@ -106,6 +128,7 @@ export function mount(root) {
         <div class="game-title">Memory Match</div>
         <div class="game-meta">
           <div>Moves<strong id="memoryMoves">0</strong></div>
+          <div>Best<strong id="memoryBest">-</strong></div>
           <div>Time<strong><span id="memoryTime">0</span>s</strong></div>
         </div>
       </div>
@@ -124,6 +147,7 @@ export function mount(root) {
 
   gridEl = root.querySelector('#memoryGrid');
   movesEl = root.querySelector('#memoryMoves');
+  bestEl = root.querySelector('#memoryBest');
   timeEl = root.querySelector('#memoryTime');
   statusEl = root.querySelector('#memoryStatus');
   const shuffleBtn = root.querySelector('#memoryShuffle');
@@ -141,6 +165,7 @@ export function mount(root) {
       resetBtn?.removeEventListener('click', resetMemory);
       gridEl = null;
       movesEl = null;
+      bestEl = null;
       timeEl = null;
       statusEl = null;
       root.innerHTML = '';

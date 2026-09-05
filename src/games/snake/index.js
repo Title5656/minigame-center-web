@@ -1,4 +1,6 @@
 import { getGameColors } from '../../utils/colors.js';
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playCoin, playHit, playBlip } from '../../utils/audio.js';
 
 export const snakeGame = {
   running: false,
@@ -7,6 +9,7 @@ export const snakeGame = {
   size: 18,
   dir: { x: 1, y: 0 },
   nextDir: { x: 1, y: 0 },
+  inputQueue: [],
   snake: [{ x: 9, y: 9 }],
   food: { x: 5, y: 5 },
   timer: null
@@ -18,6 +21,9 @@ let scoreEl = null;
 let bestEl = null;
 let statusEl = null;
 let colors = getGameColors();
+
+let touchStartX = 0;
+let touchStartY = 0;
 
 export function placeFood() {
   let x, y;
@@ -33,12 +39,15 @@ export function resetSnake() {
   clearInterval(snakeGame.timer);
   snakeGame.timer = null;
   snakeGame.score = 0;
+  snakeGame.best = getBestScore('snake', 0);
   snakeGame.dir = { x: 1, y: 0 };
   snakeGame.nextDir = { x: 1, y: 0 };
+  snakeGame.inputQueue = [];
   snakeGame.snake = [{ x: 9, y: 9 }, { x: 8, y: 9 }];
   placeFood();
   if (scoreEl) scoreEl.textContent = String(snakeGame.score);
-  if (statusEl) statusEl.textContent = 'Use arrow keys to move. Avoid walls.';
+  if (bestEl) bestEl.textContent = String(snakeGame.best);
+  if (statusEl) statusEl.textContent = 'Arrow keys or WASD / Swipe to move.';
   drawSnake();
 }
 
@@ -63,8 +72,36 @@ export function drawSnake() {
   });
 }
 
+export function queueDirection(newDir) {
+  const last = snakeGame.inputQueue.length > 0
+    ? snakeGame.inputQueue[snakeGame.inputQueue.length - 1]
+    : snakeGame.dir;
+
+  // Prevent moving directly backwards into own neck
+  if (newDir.x === -last.x && newDir.y === -last.y) return false;
+  if (newDir.x === last.x && newDir.y === last.y) return false;
+
+  if (snakeGame.inputQueue.length < 2) {
+    snakeGame.inputQueue.push(newDir);
+    snakeGame.nextDir = newDir;
+    return true;
+  }
+  return false;
+}
+
 export function tickSnake() {
-  snakeGame.dir = snakeGame.nextDir;
+  if (snakeGame.inputQueue.length > 0) {
+    const next = snakeGame.inputQueue.shift();
+    if (next.x !== -snakeGame.dir.x && next.y !== -snakeGame.dir.y) {
+      snakeGame.dir = next;
+      snakeGame.nextDir = next;
+    }
+  } else if (snakeGame.nextDir) {
+    if (snakeGame.nextDir.x !== -snakeGame.dir.x && snakeGame.nextDir.y !== -snakeGame.dir.y) {
+      snakeGame.dir = snakeGame.nextDir;
+    }
+  }
+
   const head = { x: snakeGame.snake[0].x + snakeGame.dir.x, y: snakeGame.snake[0].y + snakeGame.dir.y };
   if (
     head.x < 0 ||
@@ -77,14 +114,17 @@ export function tickSnake() {
     snakeGame.running = false;
     clearInterval(snakeGame.timer);
     snakeGame.timer = null;
+    playHit();
     return;
   }
   snakeGame.snake.unshift(head);
   if (head.x === snakeGame.food.x && head.y === snakeGame.food.y) {
     snakeGame.score += 10;
+    playCoin();
     if (scoreEl) scoreEl.textContent = String(snakeGame.score);
     if (snakeGame.score > snakeGame.best) {
       snakeGame.best = snakeGame.score;
+      saveBestScore('snake', snakeGame.best);
       if (bestEl) bestEl.textContent = String(snakeGame.best);
     }
     placeFood();
@@ -97,6 +137,7 @@ export function tickSnake() {
 export function startSnake() {
   if (snakeGame.running) return;
   snakeGame.running = true;
+  playBlip();
   if (statusEl) statusEl.textContent = 'Playing...';
   clearInterval(snakeGame.timer);
   snakeGame.timer = setInterval(tickSnake, 130);
@@ -120,12 +161,12 @@ export function mount(root) {
       </div>
       <div class="game-area">
         <div class="game-board">
-          <canvas id="snakeCanvas" width="440" height="440" aria-label="Snake game canvas"></canvas>
+          <canvas id="snakeCanvas" width="440" height="440" aria-label="Snake game canvas" style="touch-action: none;"></canvas>
         </div>
         <div class="game-controls">
           <button class="control-btn" id="snakeStart">Start</button>
           <button class="control-btn" id="snakeReset">Reset</button>
-          <div class="hint" id="snakeStatus" aria-live="polite">Use arrow keys to move. Avoid walls.</div>
+          <div class="hint" id="snakeStatus" aria-live="polite">Use arrow keys or WASD / Swipe. Avoid walls.</div>
         </div>
       </div>
     </div>
@@ -142,18 +183,42 @@ export function mount(root) {
 
   function onKeyDown(e) {
     const key = e.key;
-    const dir = snakeGame.nextDir;
-    const handled =
-      (key === 'ArrowUp' && dir.y !== 1 && (snakeGame.nextDir = { x: 0, y: -1 })) ||
-      (key === 'ArrowDown' && dir.y !== -1 && (snakeGame.nextDir = { x: 0, y: 1 })) ||
-      (key === 'ArrowLeft' && dir.x !== 1 && (snakeGame.nextDir = { x: -1, y: 0 })) ||
-      (key === 'ArrowRight' && dir.x !== -1 && (snakeGame.nextDir = { x: 1, y: 0 }));
+    let handled = false;
+    if (key === 'ArrowUp' || key === 'w' || key === 'W') {
+      handled = queueDirection({ x: 0, y: -1 });
+    } else if (key === 'ArrowDown' || key === 's' || key === 'S') {
+      handled = queueDirection({ x: 0, y: 1 });
+    } else if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
+      handled = queueDirection({ x: -1, y: 0 });
+    } else if (key === 'ArrowRight' || key === 'd' || key === 'D') {
+      handled = queueDirection({ x: 1, y: 0 });
+    }
     if (handled) e.preventDefault();
+  }
+
+  function onTouchStart(e) {
+    if (e.touches && e.touches.length > 0) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+
+  function onTouchEnd(e) {
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20) {
+      queueDirection(dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 });
+    } else if (Math.abs(dy) >= Math.abs(dx) && Math.abs(dy) > 20) {
+      queueDirection(dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 });
+    }
   }
 
   startBtn?.addEventListener('click', startSnake);
   resetBtn?.addEventListener('click', resetSnake);
   window.addEventListener('keydown', onKeyDown);
+  canvas?.addEventListener('touchstart', onTouchStart, { passive: true });
+  canvas?.addEventListener('touchend', onTouchEnd, { passive: true });
 
   resetSnake();
 
@@ -163,6 +228,8 @@ export function mount(root) {
       startBtn?.removeEventListener('click', startSnake);
       resetBtn?.removeEventListener('click', resetSnake);
       window.removeEventListener('keydown', onKeyDown);
+      canvas?.removeEventListener('touchstart', onTouchStart);
+      canvas?.removeEventListener('touchend', onTouchEnd);
       canvas = null;
       ctx = null;
       scoreEl = null;

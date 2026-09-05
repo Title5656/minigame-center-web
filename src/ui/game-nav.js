@@ -1,5 +1,12 @@
+import { isMuted, toggleMute, playBlip } from '../utils/audio.js';
+
 export function createGameNav({ container, games, activeSlug, onSelectGame, onHome }) {
   container.innerHTML = '';
+
+  const leftGroup = document.createElement('div');
+  leftGroup.style.display = 'flex';
+  leftGroup.style.gap = '0.75rem';
+  leftGroup.style.alignItems = 'center';
 
   const backBtn = document.createElement('button');
   backBtn.className = 'back-link';
@@ -10,6 +17,26 @@ export function createGameNav({ container, games, activeSlug, onSelectGame, onHo
     e.preventDefault();
     if (onHome) onHome();
   });
+
+  const soundBtn = document.createElement('button');
+  soundBtn.className = 'back-link';
+  soundBtn.id = 'toggleAudio';
+  soundBtn.type = 'button';
+  soundBtn.setAttribute('aria-label', 'Toggle audio sound effects');
+
+  function updateSoundText() {
+    soundBtn.textContent = isMuted() ? '🔇 Muted' : '🔊 Sound';
+  }
+  updateSoundText();
+
+  soundBtn.addEventListener('click', () => {
+    toggleMute();
+    updateSoundText();
+    if (!isMuted()) playBlip();
+  });
+
+  leftGroup.appendChild(backBtn);
+  leftGroup.appendChild(soundBtn);
 
   const switchWrap = document.createElement('div');
   switchWrap.className = 'switch-wrap';
@@ -38,7 +65,7 @@ export function createGameNav({ container, games, activeSlug, onSelectGame, onHo
   switchWrap.appendChild(labelSpan);
   switchWrap.appendChild(select);
 
-  container.appendChild(backBtn);
+  container.appendChild(leftGroup);
   container.appendChild(switchWrap);
 
   return {

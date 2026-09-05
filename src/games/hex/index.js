@@ -1,7 +1,11 @@
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playBlip, playWin, playTone } from '../../utils/audio.js';
+
 export const hexGame = {
   tiles: [],
   empty: 15,
   moves: 0,
+  best: 0,
   seconds: 0,
   timer: null,
   active: false
@@ -9,6 +13,7 @@ export const hexGame = {
 
 let gridEl = null;
 let movesEl = null;
+let bestEl = null;
 let timeEl = null;
 let statusEl = null;
 
@@ -65,6 +70,7 @@ export function tryMoveHex(index) {
   }
   swapHex(index);
   hexGame.moves += 1;
+  playBlip();
   if (movesEl) movesEl.textContent = String(hexGame.moves);
   renderHex();
   checkHexSolved();
@@ -74,10 +80,10 @@ export function moveHexByKey(key) {
   const row = Math.floor(hexGame.empty / 4);
   const col = hexGame.empty % 4;
   let target = null;
-  if (key === 'ArrowUp' && row < 3) target = hexGame.empty + 4;
-  if (key === 'ArrowDown' && row > 0) target = hexGame.empty - 4;
-  if (key === 'ArrowLeft' && col < 3) target = hexGame.empty + 1;
-  if (key === 'ArrowRight' && col > 0) target = hexGame.empty - 1;
+  if ((key === 'ArrowUp' || key === 'w' || key === 'W') && row < 3) target = hexGame.empty + 4;
+  if ((key === 'ArrowDown' || key === 's' || key === 'S') && row > 0) target = hexGame.empty - 4;
+  if ((key === 'ArrowLeft' || key === 'a' || key === 'A') && col < 3) target = hexGame.empty + 1;
+  if ((key === 'ArrowRight' || key === 'd' || key === 'D') && col > 0) target = hexGame.empty - 1;
   if (target !== null) tryMoveHex(target);
 }
 
@@ -87,6 +93,10 @@ export function checkHexSolved() {
   }
   if (hexGame.tiles[15] !== 0) return;
   pauseHex();
+  playWin();
+  const best = saveBestScore('hex_moves', hexGame.moves, true);
+  hexGame.best = best;
+  if (bestEl) bestEl.textContent = String(best);
   if (statusEl) statusEl.textContent = `Solved in ${hexGame.moves} moves · ${hexGame.seconds}s`;
 }
 
@@ -101,10 +111,13 @@ export function shuffleHex() {
   hexGame.moves = 0;
   hexGame.seconds = 0;
   hexGame.active = false;
+  hexGame.best = getBestScore('hex_moves', 0);
   pauseHex();
+  playTone(400, 'square', 0.08, 0.05);
   if (movesEl) movesEl.textContent = '0';
+  if (bestEl) bestEl.textContent = hexGame.best > 0 ? String(hexGame.best) : '-';
   if (timeEl) timeEl.textContent = '0';
-  if (statusEl) statusEl.textContent = 'Slide tiles with arrow keys or taps.';
+  if (statusEl) statusEl.textContent = 'Slide tiles with arrow keys, WASD, or taps.';
   renderHex();
 }
 
@@ -115,6 +128,7 @@ export function mount(root) {
         <div class="game-title">Hex Slide</div>
         <div class="game-meta">
           <div>Moves<strong id="hexMoves">0</strong></div>
+          <div>Best<strong id="hexBest">-</strong></div>
           <div>Time<strong><span id="hexTime">0</span>s</strong></div>
         </div>
       </div>
@@ -125,7 +139,7 @@ export function mount(root) {
         <div class="game-controls">
           <button class="control-btn" id="hexShuffle">Shuffle</button>
           <button class="control-btn" id="hexReset">Reset</button>
-          <div class="hint" id="hexStatus" aria-live="polite">Slide tiles with arrow keys or taps.</div>
+          <div class="hint" id="hexStatus" aria-live="polite">Slide tiles with arrow keys, WASD, or taps.</div>
         </div>
       </div>
     </div>
@@ -133,13 +147,14 @@ export function mount(root) {
 
   gridEl = root.querySelector('#hexGrid');
   movesEl = root.querySelector('#hexMoves');
+  bestEl = root.querySelector('#hexBest');
   timeEl = root.querySelector('#hexTime');
   statusEl = root.querySelector('#hexStatus');
   const shuffleBtn = root.querySelector('#hexShuffle');
   const resetBtn = root.querySelector('#hexReset');
 
   function onKeyDown(e) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 's', 'S', 'a', 'A', 'd', 'D'].includes(e.key)) {
       moveHexByKey(e.key);
       e.preventDefault();
     }
@@ -159,6 +174,7 @@ export function mount(root) {
       window.removeEventListener('keydown', onKeyDown);
       gridEl = null;
       movesEl = null;
+      bestEl = null;
       timeEl = null;
       statusEl = null;
       root.innerHTML = '';

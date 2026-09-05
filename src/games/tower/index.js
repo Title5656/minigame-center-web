@@ -1,4 +1,6 @@
 import { getGameColors } from '../../utils/colors.js';
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playCoin, playHit, playBlip } from '../../utils/audio.js';
 
 export const towerGame = {
   running: false,
@@ -23,6 +25,7 @@ export function resetTower() {
   const height = canvas?.height || 320;
   towerGame.running = false;
   towerGame.score = 0;
+  towerGame.best = getBestScore('tower', 0);
   towerGame.stack = [
     {
       x: (width - 140) / 2,
@@ -38,7 +41,8 @@ export function resetTower() {
     speed: 2.4
   };
   if (scoreEl) scoreEl.textContent = '0';
-  if (statusEl) statusEl.textContent = 'Press Drop or Space to stack the blocks.';
+  if (bestEl) bestEl.textContent = String(towerGame.best);
+  if (statusEl) statusEl.textContent = 'Press Drop, Space, or tap canvas to stack blocks.';
   drawTower();
 }
 
@@ -84,33 +88,43 @@ export function dropTower() {
   const overlap = right - left;
   if (overlap <= 4) {
     towerGame.running = false;
+    playHit();
     if (statusEl) statusEl.textContent = 'Missed! Press Reset.';
     return;
   }
   towerGame.stack.push({ x: left, y: towerGame.current.y, w: overlap });
   towerGame.score += 1;
+  playCoin();
   if (scoreEl) scoreEl.textContent = String(towerGame.score);
   if (towerGame.score > towerGame.best) {
     towerGame.best = towerGame.score;
+    saveBestScore('tower', towerGame.best);
     if (bestEl) bestEl.textContent = String(towerGame.best);
   }
+
+  let nextY = towerGame.current.y - towerGame.blockH - 6;
+  if (nextY < 80) {
+    const shift = towerGame.blockH + 6;
+    towerGame.stack.forEach((b) => {
+      b.y += shift;
+    });
+    nextY += shift;
+  }
+
   towerGame.current = {
     x: 0,
-    y: towerGame.current.y - towerGame.blockH - 6,
+    y: nextY,
     w: overlap,
     dir: 1,
     speed: towerGame.current.speed + 0.08
   };
-  if (towerGame.current.y < 20) {
-    towerGame.running = false;
-    if (statusEl) statusEl.textContent = 'Perfect stack! Press Reset.';
-  }
 }
 
 export function startTower() {
   if (towerGame.running) return;
   towerGame.running = true;
   towerGame.lastTime = 0;
+  playBlip();
   if (statusEl) statusEl.textContent = 'Playing...';
   towerLoop(performance.now());
 }
@@ -135,13 +149,13 @@ export function mount(root) {
       </div>
       <div class="game-area">
         <div class="game-board">
-          <canvas id="towerCanvas" width="440" height="320" aria-label="Tower drop game canvas"></canvas>
+          <canvas id="towerCanvas" width="440" height="320" aria-label="Tower drop game canvas" style="touch-action: manipulation; cursor: pointer;"></canvas>
         </div>
         <div class="game-controls">
           <button class="control-btn" id="towerStart">Start</button>
           <button class="control-btn" id="towerDrop">Drop</button>
           <button class="control-btn" id="towerReset">Reset</button>
-          <div class="hint" id="towerStatus" aria-live="polite">Press Drop or Space to stack the blocks.</div>
+          <div class="hint" id="towerStatus" aria-live="polite">Press Drop, Space, or tap canvas to stack the blocks.</div>
         </div>
       </div>
     </div>
@@ -164,10 +178,15 @@ export function mount(root) {
     }
   }
 
+  function onPointerDown() {
+    dropTower();
+  }
+
   startBtn?.addEventListener('click', startTower);
   dropBtn?.addEventListener('click', dropTower);
   resetBtn?.addEventListener('click', resetTower);
   window.addEventListener('keydown', onKeyDown);
+  canvas?.addEventListener('pointerdown', onPointerDown);
 
   resetTower();
 
@@ -178,6 +197,7 @@ export function mount(root) {
       dropBtn?.removeEventListener('click', dropTower);
       resetBtn?.removeEventListener('click', resetTower);
       window.removeEventListener('keydown', onKeyDown);
+      canvas?.removeEventListener('pointerdown', onPointerDown);
       canvas = null;
       ctx = null;
       scoreEl = null;

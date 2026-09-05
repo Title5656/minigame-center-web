@@ -1,8 +1,11 @@
 import { getGameColors } from '../../utils/colors.js';
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playCoin, playHit, playBlip, playWin } from '../../utils/audio.js';
 
 export const breakout = {
   running: false,
   score: 0,
+  best: 0,
   lives: 3,
   ball: { x: 280, y: 220, dx: 3, dy: -3, r: 7 },
   paddle: { w: 90, h: 10, x: 235, speed: 6 },
@@ -20,6 +23,7 @@ export const breakout = {
 let canvas = null;
 let ctx = null;
 let scoreEl = null;
+let bestEl = null;
 let livesEl = null;
 let statusEl = null;
 let colors = getGameColors();
@@ -30,6 +34,7 @@ export function resetBreakout() {
 
   breakout.running = false;
   breakout.score = 0;
+  breakout.best = getBestScore('breakout', 0);
   breakout.lives = 3;
   breakout.ball = { x: width / 2, y: height - 80, dx: 3, dy: -3, r: 7 };
   breakout.paddle.x = (width - breakout.paddle.w) / 2;
@@ -48,8 +53,9 @@ export function resetBreakout() {
   }
 
   if (scoreEl) scoreEl.textContent = String(breakout.score);
+  if (bestEl) bestEl.textContent = String(breakout.best);
   if (livesEl) livesEl.textContent = String(breakout.lives);
-  if (statusEl) statusEl.textContent = 'Press Start to play. Controls: ← → / A D';
+  if (statusEl) statusEl.textContent = 'Press Start. Controls: ← → / A D or Drag Mouse/Touch.';
   drawBreakout();
 }
 
@@ -104,10 +110,12 @@ export function updateBreakout(scale = 1) {
     const hitPos = (breakout.ball.x - breakout.paddle.x) / breakout.paddle.w - 0.5;
     breakout.ball.dx = hitPos * 6;
     if (Math.abs(breakout.ball.dx) < 0.5) breakout.ball.dx = breakout.ball.dx >= 0 ? 0.5 : -0.5;
+    playBlip();
   }
 
   if (breakout.ball.y - breakout.ball.r > height) {
     breakout.lives -= 1;
+    playHit();
     if (livesEl) livesEl.textContent = String(breakout.lives);
     if (breakout.lives <= 0) {
       breakout.running = false;
@@ -129,12 +137,19 @@ export function updateBreakout(scale = 1) {
       brick.active = false;
       breakout.ball.dy *= -1;
       breakout.score += 10;
+      playCoin();
       if (scoreEl) scoreEl.textContent = String(breakout.score);
+      if (breakout.score > breakout.best) {
+        breakout.best = breakout.score;
+        saveBestScore('breakout', breakout.best);
+        if (bestEl) bestEl.textContent = String(breakout.best);
+      }
     }
   });
 
   if (breakout.bricks.length > 0 && breakout.bricks.every((b) => !b.active)) {
     breakout.running = false;
+    playWin();
     if (statusEl) statusEl.textContent = 'You cleared the board! Press Reset.';
   }
 }
@@ -154,6 +169,7 @@ export function startBreakout() {
   if (breakout.running) return;
   breakout.running = true;
   breakout.lastTime = 0;
+  playBlip();
   if (statusEl) statusEl.textContent = 'Playing...';
   breakoutLoop(performance.now());
 }
@@ -173,17 +189,18 @@ export function mount(root) {
         <div class="game-title">Breakout</div>
         <div class="game-meta">
           <div>Score<strong id="breakoutScore">0</strong></div>
+          <div>Best<strong id="breakoutBest">0</strong></div>
           <div>Lives<strong id="breakoutLives">3</strong></div>
         </div>
       </div>
       <div class="game-area">
         <div class="game-board">
-          <canvas id="breakoutCanvas" width="720" height="420" aria-label="Breakout game canvas"></canvas>
+          <canvas id="breakoutCanvas" width="720" height="420" aria-label="Breakout game canvas" style="touch-action: none; cursor: ew-resize;"></canvas>
         </div>
         <div class="game-controls">
           <button class="control-btn" id="breakoutStart">Start</button>
           <button class="control-btn" id="breakoutReset">Reset</button>
-          <div class="hint" id="breakoutStatus" aria-live="polite">Press Start to play. Controls: ← → / A D</div>
+          <div class="hint" id="breakoutStatus" aria-live="polite">Press Start to play. Controls: ← → / A D or drag paddle.</div>
         </div>
       </div>
     </div>
@@ -192,6 +209,7 @@ export function mount(root) {
   canvas = root.querySelector('#breakoutCanvas');
   ctx = canvas?.getContext('2d');
   scoreEl = root.querySelector('#breakoutScore');
+  bestEl = root.querySelector('#breakoutBest');
   livesEl = root.querySelector('#breakoutLives');
   statusEl = root.querySelector('#breakoutStatus');
   const startBtn = root.querySelector('#breakoutStart');
@@ -219,10 +237,20 @@ export function mount(root) {
     }
   }
 
+  function onPointerMove(e) {
+    if (!canvas || !breakout.running) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width ? canvas.width / rect.width : 1;
+    const x = (e.clientX - rect.left) * scaleX;
+    breakout.paddle.x = Math.max(0, Math.min(canvas.width - breakout.paddle.w, x - breakout.paddle.w / 2));
+  }
+
   startBtn?.addEventListener('click', startBreakout);
   resetBtn?.addEventListener('click', resetBreakout);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
+  canvas?.addEventListener('pointermove', onPointerMove);
+  canvas?.addEventListener('pointerdown', onPointerMove);
 
   resetBreakout();
 
@@ -233,9 +261,12 @@ export function mount(root) {
       resetBtn?.removeEventListener('click', resetBreakout);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      canvas?.removeEventListener('pointermove', onPointerMove);
+      canvas?.removeEventListener('pointerdown', onPointerMove);
       canvas = null;
       ctx = null;
       scoreEl = null;
+      bestEl = null;
       livesEl = null;
       statusEl = null;
       root.innerHTML = '';

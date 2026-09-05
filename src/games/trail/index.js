@@ -1,3 +1,6 @@
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playTone, playHit, playWin } from '../../utils/audio.js';
+
 export const trailGame = {
   sequence: [],
   userIndex: 0,
@@ -12,8 +15,13 @@ let levelEl = null;
 let bestEl = null;
 let statusEl = null;
 
+const padFrequencies = [261.63, 329.63, 392.0, 523.25];
+
 export function flashTrailPad(index) {
   const pad = pads[index] || (typeof document !== 'undefined' ? document.querySelector(`.trail-pad[data-pad="${index}"]`) : null);
+  if (padFrequencies[index]) {
+    playTone(padFrequencies[index], 'sine', 0.22, 0.1);
+  }
   if (!pad) return;
   pad.classList.add('active');
   setTimeout(() => pad.classList.remove('active'), 250);
@@ -66,7 +74,9 @@ export function resetTrail() {
   trailGame.sequence = [];
   trailGame.userIndex = 0;
   trailGame.level = 0;
+  trailGame.best = getBestScore('trail', 0);
   if (levelEl) levelEl.textContent = '0';
+  if (bestEl) bestEl.textContent = String(trailGame.best);
   if (statusEl) statusEl.textContent = 'Repeat the light sequence.';
 }
 
@@ -75,9 +85,11 @@ export function handleTrailInput(index) {
   if (trailGame.userIndex >= trailGame.sequence.length) return;
   flashTrailPad(index);
   if (trailGame.sequence[trailGame.userIndex] !== index) {
+    playHit();
     if (statusEl) statusEl.textContent = 'Missed! Press Start.';
     if (trailGame.level > trailGame.best) {
       trailGame.best = trailGame.level;
+      saveBestScore('trail', trailGame.best);
       if (bestEl) bestEl.textContent = String(trailGame.best);
     }
     trailGame.sequence = [];
@@ -88,6 +100,14 @@ export function handleTrailInput(index) {
   }
   trailGame.userIndex += 1;
   if (trailGame.userIndex === trailGame.sequence.length) {
+    if (trailGame.level > trailGame.best) {
+      trailGame.best = trailGame.level;
+      saveBestScore('trail', trailGame.best);
+      if (bestEl) bestEl.textContent = String(trailGame.best);
+    }
+    if (trailGame.level % 5 === 0) {
+      playWin();
+    }
     trailGame.timeout = setTimeout(addTrailStep, 400);
   }
 }

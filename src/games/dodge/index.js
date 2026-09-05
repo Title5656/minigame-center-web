@@ -1,4 +1,6 @@
 import { getGameColors } from '../../utils/colors.js';
+import { getBestScore, saveBestScore } from '../../utils/scores.js';
+import { playHit, playBlip } from '../../utils/audio.js';
 
 export const dodgeGame = {
   running: false,
@@ -24,12 +26,14 @@ export function resetDodge() {
   const height = canvas?.height || 320;
   dodgeGame.running = false;
   dodgeGame.score = 0;
+  dodgeGame.best = getBestScore('dodge', 0);
   dodgeGame.ship.x = (width - dodgeGame.ship.w) / 2;
   dodgeGame.ship.y = height - 30;
   dodgeGame.asteroids = [];
   dodgeGame.spawnTimer = 0;
   if (scoreEl) scoreEl.textContent = '0';
-  if (statusEl) statusEl.textContent = 'Move with ← → / A D and dodge the asteroids.';
+  if (bestEl) bestEl.textContent = String(dodgeGame.best);
+  if (statusEl) statusEl.textContent = 'Move with ← → / A D or Drag with Mouse/Touch.';
   drawDodge();
 }
 
@@ -64,18 +68,20 @@ export function drawDodge() {
 export function updateDodge(delta) {
   const width = canvas?.width || 520;
   const height = canvas?.height || 320;
+  const scale = delta / (1000 / 60);
 
   dodgeGame.score += delta * 0.02;
   const newScore = String(Math.floor(dodgeGame.score));
   if (scoreEl && scoreEl.textContent !== newScore) scoreEl.textContent = newScore;
   if (dodgeGame.score > dodgeGame.best) {
     dodgeGame.best = Math.floor(dodgeGame.score);
+    saveBestScore('dodge', dodgeGame.best);
     const bestStr = String(dodgeGame.best);
     if (bestEl && bestEl.textContent !== bestStr) bestEl.textContent = bestStr;
   }
 
-  if (dodgeGame.keys.left) dodgeGame.ship.x = Math.max(0, dodgeGame.ship.x - dodgeGame.ship.speed);
-  if (dodgeGame.keys.right) dodgeGame.ship.x = Math.min(width - dodgeGame.ship.w, dodgeGame.ship.x + dodgeGame.ship.speed);
+  if (dodgeGame.keys.left) dodgeGame.ship.x = Math.max(0, dodgeGame.ship.x - dodgeGame.ship.speed * scale);
+  if (dodgeGame.keys.right) dodgeGame.ship.x = Math.min(width - dodgeGame.ship.w, dodgeGame.ship.x + dodgeGame.ship.speed * scale);
 
   dodgeGame.spawnTimer += delta;
   if (dodgeGame.spawnTimer > 750) {
@@ -84,7 +90,7 @@ export function updateDodge(delta) {
   }
 
   dodgeGame.asteroids.forEach((ast) => {
-    ast.y += ast.speed;
+    ast.y += ast.speed * scale;
   });
   dodgeGame.asteroids = dodgeGame.asteroids.filter((ast) => ast.y < height + 20);
 
@@ -96,6 +102,7 @@ export function updateDodge(delta) {
       dodgeGame.ship.y + dodgeGame.ship.h > ast.y;
     if (hit) {
       dodgeGame.running = false;
+      playHit();
       if (statusEl) statusEl.textContent = 'Impact! Press Reset.';
       return;
     }
@@ -118,6 +125,7 @@ export function startDodge() {
   if (dodgeGame.running) return;
   dodgeGame.running = true;
   dodgeGame.lastTime = 0;
+  playBlip();
   if (statusEl) statusEl.textContent = 'Playing...';
   dodgeLoop(performance.now());
 }
@@ -142,12 +150,12 @@ export function mount(root) {
       </div>
       <div class="game-area">
         <div class="game-board">
-          <canvas id="dodgeCanvas" width="520" height="320" aria-label="Astro dodge game canvas"></canvas>
+          <canvas id="dodgeCanvas" width="520" height="320" aria-label="Astro dodge game canvas" style="touch-action: none; cursor: ew-resize;"></canvas>
         </div>
         <div class="game-controls">
           <button class="control-btn" id="dodgeStart">Start</button>
           <button class="control-btn" id="dodgeReset">Reset</button>
-          <div class="hint" id="dodgeStatus" aria-live="polite">Move with ← → / A D and dodge the asteroids.</div>
+          <div class="hint" id="dodgeStatus" aria-live="polite">Move with ← → / A D or drag across the screen.</div>
         </div>
       </div>
     </div>
@@ -183,10 +191,20 @@ export function mount(root) {
     }
   }
 
+  function onPointerMove(e) {
+    if (!canvas || !dodgeGame.running) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width ? canvas.width / rect.width : 1;
+    const x = (e.clientX - rect.left) * scaleX;
+    dodgeGame.ship.x = Math.max(0, Math.min(canvas.width - dodgeGame.ship.w, x - dodgeGame.ship.w / 2));
+  }
+
   startBtn?.addEventListener('click', startDodge);
   resetBtn?.addEventListener('click', resetDodge);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
+  canvas?.addEventListener('pointermove', onPointerMove);
+  canvas?.addEventListener('pointerdown', onPointerMove);
 
   resetDodge();
 
@@ -197,6 +215,8 @@ export function mount(root) {
       resetBtn?.removeEventListener('click', resetDodge);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      canvas?.removeEventListener('pointermove', onPointerMove);
+      canvas?.removeEventListener('pointerdown', onPointerMove);
       canvas = null;
       ctx = null;
       scoreEl = null;
